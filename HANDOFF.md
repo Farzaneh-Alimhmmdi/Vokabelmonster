@@ -1,15 +1,16 @@
 # Vokabelmonster Handoff
 
-- **Project status**: Phase 0 complete (100% of Phase 0)
-- **Live URL**: `https://farzaneh-alimhmmdi.github.io/Vokabelmonster/` (after enabling GitHub Pages)
-- **Last deployed APP_VERSION**: `0.0.1`
-- **Last git tag**: `phase-0-done`
+- **Project status**: Phase 1 complete (100% of Phase 1)
+- **Live URL**: `https://farzaneh-alimhmmdi.github.io/Vokabelmonster/`
+- **Last deployed APP_VERSION**: `0.1.0`
+- **Last git tag**: `phase-1-done`
 
 ## Completed phases
 - Phase 0: Skeleton, manifest, icons, service worker, IndexedDB v1, hash router, Settings diagnostics.
+- Phase 1: Manual cards CRUD, duplicate lemma prevention, search & tag filter, default tags, article color-coding.
 
 ## Current phase
-Phase 0 is complete. Waiting for user confirmation on iPhone before starting Phase 1.
+Phase 1 is complete. Waiting for user confirmation on iPhone before starting Phase 2.
 
 ## File map
 - `index.html`: App shell, iOS meta tags, header, bottom tab bar.
@@ -56,4 +57,4 @@ python3 -m http.server 8000
 ```
 
 ## NEXT STEP
-Confirm Phase 0 works on iPhone (GitHub Pages + Add to Home Screen + Airplane mode), then begin Phase 1: Manual cards (core CRUD) in `js/db.js` and `js/ui/words.js`.
+Confirm Phase 1 works on iPhone (add/edit/delete words, persist across app relaunch), then begin Phase 2: Dictionary search adapters in `js/dictionary.js` and `js/ui/search.js`.
