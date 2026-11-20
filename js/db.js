@@ -252,3 +252,35 @@ export async function setDictCache(key, data) {
     tx.onerror = () => reject(tx.error);
   });
 }
+
+export async function addReviewLog(entry) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('reviewLog', 'readwrite');
+    const req = tx.objectStore('reviewLog').add(entry);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+export async function deleteReviewLog(id) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('reviewLog', 'readwrite');
+    tx.objectStore('reviewLog').delete(id);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+export async function getReviewLogsSince(ts) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('reviewLog', 'readonly');
+    const index = tx.objectStore('reviewLog').index('ts');
+    const range = IDBKeyRange.lowerBound(ts);
+    const req = index.getAll(range);
+    req.onsuccess = () => resolve(req.result || []);
+    req.onerror = () => reject(req.error);
+  });
+}
