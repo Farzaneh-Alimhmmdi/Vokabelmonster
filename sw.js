@@ -1,4 +1,4 @@
-const CACHE_VERSION = '0.4.0';
+const CACHE_VERSION = '0.5.0';
 const CACHE_NAME = `vokabelmonster-v${CACHE_VERSION}`;
 
 const PRECACHE_PATHS = [

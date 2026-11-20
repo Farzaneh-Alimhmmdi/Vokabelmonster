@@ -155,6 +155,39 @@ export async function renderReview(container) {
   topBar.append(countBadge, btnGroup);
   container.appendChild(topBar);
 
+  // Monster mascot status
+  const isHungry = reviewState.queue.length > 0;
+  const monsterBar = document.createElement('div');
+  monsterBar.className = 'card';
+  monsterBar.style.display = 'flex';
+  monsterBar.style.alignItems = 'center';
+  monsterBar.style.gap = '12px';
+  monsterBar.style.padding = '10px 14px';
+
+  const monsterEmoji = document.createElement('span');
+  monsterEmoji.style.fontSize = '28px';
+  monsterEmoji.textContent = isHungry ? '👾' : '🥳';
+
+  const monsterText = document.createElement('div');
+  const deMsg = document.createElement('div');
+  deMsg.style.fontWeight = '600';
+  deMsg.style.fontSize = '14px';
+  deMsg.textContent = isHungry
+    ? 'Ich habe Hunger! Gib mir Wörter!'
+    : 'Super gemacht! Ich bin satt!';
+
+  const faMsg = document.createElement('div');
+  faMsg.className = 'muted';
+  faMsg.dir = 'rtl';
+  faMsg.style.fontSize = '13px';
+  faMsg.textContent = isHungry
+    ? 'گرسنه‌ام! بهم کلمه بده!'
+    : 'آفرین! امروز سیر شدم!';
+
+  monsterText.append(deMsg, faMsg);
+  monsterBar.append(monsterEmoji, monsterText);
+  container.appendChild(monsterBar);
+
   // Mode selector
   const modesRow = document.createElement('div');
   modesRow.className = 'chips-row';

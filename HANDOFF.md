@@ -1,9 +1,9 @@
 # Vokabelmonster Handoff
 
-- **Project status**: Phase 4 complete (100% of Phase 4)
+- **Project status**: Phase 5 complete (100% of Phase 5)
 - **Live URL**: `https://farzaneh-alimhmmdi.github.io/Vokabelmonster/`
-- **Last deployed APP_VERSION**: `0.4.0`
-- **Last git tag**: `phase-4-done`
+- **Last deployed APP_VERSION**: `0.5.0`
+- **Last git tag**: `phase-5-done`
 
 ## Completed phases
 - Phase 0: Skeleton, manifest, icons, service worker, IndexedDB v1, hash router, Settings diagnostics.
@@ -11,9 +11,10 @@
 - Phase 2: Dictionary search (de.wiktionary.org + MyMemory), IndexedDB dictCache, pre-filled Add flow, offline fallback.
 - Phase 3: SM-2 spaced repetition (`js/srs.js` + `tests/srs.test.mjs`), flashcard review UI, undo, `reviewLog`.
 - Phase 4: German TTS (`js/tts.js`) on cards/search/review + exercise modes (Type, Multiple Choice, Cloze, Article).
+- Phase 5: Stats (streak, SVG progress ring, 7-day chart, state counts, difficult words) + monster mascot states in Review.
 
 ## Current phase
-Phase 4 is complete. Waiting for user confirmation on iPhone before starting Phase 5.
+Phase 5 is complete. Waiting for user confirmation on iPhone before starting Phase 6.
 
 ## File map
 - `index.html`: App shell, iOS meta tags, header, bottom tab bar.
@@ -61,4 +62,4 @@ python3 -m http.server 8000
 ```
 
 ## NEXT STEP
-Confirm Phase 4 works on iPhone (TTS + all 5 review modes), then begin Phase 5: Stats & monster mascot states in `js/ui/stats.js` and `js/ui/review.js`.
+Confirm Phase 5 works on iPhone (Stats + monster mascot), then begin Phase 6: Backup, CSV/JSON import/export, sharing between phones, and Settings.
