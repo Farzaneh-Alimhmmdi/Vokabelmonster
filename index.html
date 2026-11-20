@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Vokabelmonster" />
+    <meta name="theme-color" content="#FF8C42" />
+    <title>Vokabelmonster</title>
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="./icons/apple-touch-icon-180.png" />
+    <link rel="icon" type="image/png" href="./icons/icon-192.png" />
+    <link rel="stylesheet" href="./css/app.css" />
+  </head>
+  <body>
+    <header class="app-header">
+      <div class="app-header-inner">
+        <h1 class="app-title">
+          <img src="./icons/icon-192.png" alt="Vokabelmonster" />
+          <span>Vokabelmonster</span>
+        </h1>
+        <span id="network-status" class="status-pill">Online</span>
+      </div>
+    </header>
+
+    <main id="app-main" class="app-main" aria-live="polite"></main>
+
+    <nav class="tab-bar" aria-label="Main navigation">
+      <div class="tab-bar-inner">
+        <a href="#/search" class="tab-link" data-route="search">
+          <span class="tab-icon" aria-hidden="true">🔍</span>
+          <span>Search</span>
+        </a>
+        <a href="#/review" class="tab-link" data-route="review">
+          <span class="tab-icon" aria-hidden="true">🧠</span>
+          <span>Review</span>
+        </a>
+        <a href="#/words" class="tab-link" data-route="words">
+          <span class="tab-icon" aria-hidden="true">📚</span>
+          <span>Words</span>
+        </a>
+        <a href="#/stats" class="tab-link" data-route="stats">
+          <span class="tab-icon" aria-hidden="true">📊</span>
+          <span>Stats</span>
+        </a>
+        <a href="#/settings" class="tab-link" data-route="settings">
+          <span class="tab-icon" aria-hidden="true">⚙️</span>
+          <span>Settings</span>
+        </a>
+      </div>
+    </nav>
+
+    <script type="module" src="./js/app.js"></script>
+  </body>
+</html>
