@@ -1,15 +1,17 @@
 # Vokabelmonster Handoff
 
-- **Project status**: Phase 0 complete (100% of Phase 0)
-- **Live URL**: `https://farzaneh-alimhmmdi.github.io/Vokabelmonster/` (after enabling GitHub Pages)
-- **Last deployed APP_VERSION**: `0.0.1`
-- **Last git tag**: `phase-0-done`
+- **Project status**: Phase 2 complete (100% of Phase 2)
+- **Live URL**: `https://farzaneh-alimhmmdi.github.io/Vokabelmonster/`
+- **Last deployed APP_VERSION**: `0.2.0`
+- **Last git tag**: `phase-2-done`
 
 ## Completed phases
 - Phase 0: Skeleton, manifest, icons, service worker, IndexedDB v1, hash router, Settings diagnostics.
+- Phase 1: Manual cards CRUD, duplicate lemma prevention, search & tag filter, default tags, article color-coding.
+- Phase 2: Dictionary search (de.wiktionary.org + MyMemory), IndexedDB dictCache, pre-filled Add flow, offline fallback.
 
 ## Current phase
-Phase 0 is complete. Waiting for user confirmation on iPhone before starting Phase 1.
+Phase 2 is complete. Waiting for user confirmation on iPhone before starting Phase 3.
 
 ## File map
 - `index.html`: App shell, iOS meta tags, header, bottom tab bar.
@@ -31,7 +33,8 @@ Phase 0 is complete. Waiting for user confirmation on iPhone before starting Pha
 - Stores: `cards` (indexes: `lemmaNorm` unique, `srsDue`, `tags` multiEntry), `reviewLog` (indexes: `cardId`, `ts`), `settings`, `dictCache`.
 
 ## External APIs
-- None yet (Phase 2).
+- `de.wiktionary.org/w/api.php` (`origin=*`): German noun article/plural, POS, verb forms, examples.
+- `api.mymemory.translated.net/get`: `de|fa` and `de|en` translations (no key, rate-limited for heavy use; cached in `dictCache`).
 
 ## Decisions made
 - Kept `APP_VERSION` in `js/version.js` and mirrored `CACHE_VERSION` in `sw.js` (classic SW script) for maximum iOS Safari compatibility.
@@ -56,4 +59,4 @@ python3 -m http.server 8000
 ```
 
 ## NEXT STEP
-Confirm Phase 0 works on iPhone (GitHub Pages + Add to Home Screen + Airplane mode), then begin Phase 1: Manual cards (core CRUD) in `js/db.js` and `js/ui/words.js`.
+Confirm Phase 2 works on iPhone (search "Haus", "gehen", "schnell", add each, test offline fallback), then begin Phase 3: Spaced repetition (`js/srs.js`, `tests/srs.test.mjs`, and `js/ui/review.js`).

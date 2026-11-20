@@ -86,3 +86,169 @@ export async function getStoreCounts() {
   }
   return counts;
 }
+
+export function normalizeLemma(lemma) {
+  return String(lemma || '').trim().toLowerCase();
+}
+
+export function createDefaultSrs(now = Date.now()) {
+  return {
+    due: now,
+    interval: 0,
+    ease: 2.5,
+    reps: 0,
+    lapses: 0,
+    state: 'new',
+    lastReview: null,
+  };
+}
+
+export async function getAllCards() {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('cards', 'readonly');
+    const req = tx.objectStore('cards').getAll();
+    req.onsuccess = () => {
+      const list = req.result || [];
+      list.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+      resolve(list);
+    };
+    req.onerror = () => reject(req.error);
+  });
+}
+
+export async function getCardById(id) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('cards', 'readonly');
+    const req = tx.objectStore('cards').get(id);
+    req.onsuccess = () => resolve(req.result || null);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+export async function getCardByLemma(lemma) {
+  const norm = normalizeLemma(lemma);
+  if (!norm) return null;
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('cards', 'readonly');
+    const req = tx.objectStore('cards').index('lemmaNorm').get(norm);
+    req.onsuccess = () => resolve(req.result || null);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+export async function addCard(cardData) {
+  const lemma = String(cardData.lemma || '').trim();
+  const lemmaNorm = normalizeLemma(lemma);
+  if (!lemmaNorm) {
+    throw new Error('Lemma is required');
+  }
+
+  const existing = await getCardByLemma(lemmaNorm);
+  if (existing) {
+    const err = new Error(`"${lemma}" is already in your word list.`);
+    err.code = 'DUPLICATE_LEMMA';
+    throw err;
+  }
+
+  const now = Date.now();
+  const record = {
+    lemma,
+    lemmaNorm,
+    article: cardData.article || null,
+    pos: cardData.pos || 'noun',
+    plural: String(cardData.plural || '').trim(),
+    meaningFa: String(cardData.meaningFa || '').trim(),
+    meaningEn: String(cardData.meaningEn || '').trim(),
+    examples: Array.isArray(cardData.examples) ? cardData.examples : [],
+    notes: String(cardData.notes || '').trim(),
+    tags: Array.isArray(cardData.tags) ? cardData.tags : [],
+    level: cardData.level || null,
+    verbForms: cardData.verbForms || null,
+    createdAt: now,
+    srs: cardData.srs || createDefaultSrs(now),
+  };
+
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('cards', 'readwrite');
+    const req = tx.objectStore('cards').add(record);
+    req.onsuccess = () => resolve({ ...record, id: req.result });
+    req.onerror = () => reject(req.error);
+  });
+}
+
+export async function updateCard(id, patch) {
+  const current = await getCardById(id);
+  if (!current) {
+    throw new Error('Card not found');
+  }
+
+  const nextLemma =
+    patch.lemma !== undefined ? String(patch.lemma).trim() : current.lemma;
+  const nextNorm = normalizeLemma(nextLemma);
+  if (!nextNorm) {
+    throw new Error('Lemma is required');
+  }
+
+  if (nextNorm !== current.lemmaNorm) {
+    const existing = await getCardByLemma(nextNorm);
+    if (existing && existing.id !== id) {
+      const err = new Error(`"${nextLemma}" is already in your word list.`);
+      err.code = 'DUPLICATE_LEMMA';
+      throw err;
+    }
+  }
+
+  const updated = {
+    ...current,
+    ...patch,
+    id,
+    lemma: nextLemma,
+    lemmaNorm: nextNorm,
+  };
+
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('cards', 'readwrite');
+    const req = tx.objectStore('cards').put(updated);
+    req.onsuccess = () => resolve(updated);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+export async function deleteCard(id) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('cards', 'readwrite');
+    tx.objectStore('cards').delete(id);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+export async function getDictCache(key) {
+  const norm = normalizeLemma(key);
+  if (!norm) return null;
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('dictCache', 'readonly');
+    const req = tx.objectStore('dictCache').get(norm);
+    req.onsuccess = () => resolve(req.result || null);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+export async function setDictCache(key, data) {
+  const norm = normalizeLemma(key);
+  if (!norm) return;
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('dictCache', 'readwrite');
+    tx.objectStore('dictCache').put({ key: norm, data, ts: Date.now() });
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
