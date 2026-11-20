@@ -1,6 +1,7 @@
 import { lookupWord } from '../dictionary.js';
 import { getCardByLemma, getDictCache, setDictCache } from '../db.js';
 import { setPendingPrefill } from './words.js';
+import { speakGerman } from '../tts.js';
 
 let searchState = {
   query: '',
@@ -177,7 +178,20 @@ export function renderSearch(container) {
   badge.className = 'badge';
   badge.textContent = searchState.fromCache ? `${r.pos} · cached` : r.pos;
 
-  head.append(lemmaWrap, badge);
+  const speakBtn = document.createElement('button');
+  speakBtn.type = 'button';
+  speakBtn.className = 'btn btn-sm';
+  speakBtn.setAttribute('aria-label', 'Pronounce word');
+  speakBtn.textContent = '🔊';
+  speakBtn.onclick = () => speakGerman(r.article ? `${r.article} ${r.lemma}` : r.lemma);
+
+  const rightGroup = document.createElement('div');
+  rightGroup.style.display = 'flex';
+  rightGroup.style.alignItems = 'center';
+  rightGroup.style.gap = '8px';
+  rightGroup.append(speakBtn, badge);
+
+  head.append(lemmaWrap, rightGroup);
   resCard.appendChild(head);
 
   if (r.meaningFa) {
