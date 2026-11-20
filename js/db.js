@@ -228,3 +228,27 @@ export async function deleteCard(id) {
     tx.onerror = () => reject(tx.error);
   });
 }
+
+export async function getDictCache(key) {
+  const norm = normalizeLemma(key);
+  if (!norm) return null;
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('dictCache', 'readonly');
+    const req = tx.objectStore('dictCache').get(norm);
+    req.onsuccess = () => resolve(req.result || null);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+export async function setDictCache(key, data) {
+  const norm = normalizeLemma(key);
+  if (!norm) return;
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('dictCache', 'readwrite');
+    tx.objectStore('dictCache').put({ key: norm, data, ts: Date.now() });
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}

@@ -1,16 +1,17 @@
 # Vokabelmonster Handoff
 
-- **Project status**: Phase 1 complete (100% of Phase 1)
+- **Project status**: Phase 2 complete (100% of Phase 2)
 - **Live URL**: `https://farzaneh-alimhmmdi.github.io/Vokabelmonster/`
-- **Last deployed APP_VERSION**: `0.1.0`
-- **Last git tag**: `phase-1-done`
+- **Last deployed APP_VERSION**: `0.2.0`
+- **Last git tag**: `phase-2-done`
 
 ## Completed phases
 - Phase 0: Skeleton, manifest, icons, service worker, IndexedDB v1, hash router, Settings diagnostics.
 - Phase 1: Manual cards CRUD, duplicate lemma prevention, search & tag filter, default tags, article color-coding.
+- Phase 2: Dictionary search (de.wiktionary.org + MyMemory), IndexedDB dictCache, pre-filled Add flow, offline fallback.
 
 ## Current phase
-Phase 1 is complete. Waiting for user confirmation on iPhone before starting Phase 2.
+Phase 2 is complete. Waiting for user confirmation on iPhone before starting Phase 3.
 
 ## File map
 - `index.html`: App shell, iOS meta tags, header, bottom tab bar.
@@ -32,7 +33,8 @@ Phase 1 is complete. Waiting for user confirmation on iPhone before starting Pha
 - Stores: `cards` (indexes: `lemmaNorm` unique, `srsDue`, `tags` multiEntry), `reviewLog` (indexes: `cardId`, `ts`), `settings`, `dictCache`.
 
 ## External APIs
-- None yet (Phase 2).
+- `de.wiktionary.org/w/api.php` (`origin=*`): German noun article/plural, POS, verb forms, examples.
+- `api.mymemory.translated.net/get`: `de|fa` and `de|en` translations (no key, rate-limited for heavy use; cached in `dictCache`).
 
 ## Decisions made
 - Kept `APP_VERSION` in `js/version.js` and mirrored `CACHE_VERSION` in `sw.js` (classic SW script) for maximum iOS Safari compatibility.
@@ -57,4 +59,4 @@ python3 -m http.server 8000
 ```
 
 ## NEXT STEP
-Confirm Phase 1 works on iPhone (add/edit/delete words, persist across app relaunch), then begin Phase 2: Dictionary search adapters in `js/dictionary.js` and `js/ui/search.js`.
+Confirm Phase 2 works on iPhone (search "Haus", "gehen", "schnell", add each, test offline fallback), then begin Phase 3: Spaced repetition (`js/srs.js`, `tests/srs.test.mjs`, and `js/ui/review.js`).

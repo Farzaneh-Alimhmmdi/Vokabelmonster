@@ -22,6 +22,12 @@ let state = {
   confirmDeleteId: null,
 };
 
+export function setPendingPrefill(prefillData) {
+  state.editingCard = prefillData || null;
+  state.showForm = true;
+  state.banner = null;
+}
+
 function setBanner(type, text) {
   state.banner = text ? { type, text } : null;
 }
@@ -36,7 +42,7 @@ function renderBanner(container) {
 
 function renderForm(container, onDone) {
   const card = state.editingCard;
-  const isEdit = Boolean(card);
+  const isEdit = Boolean(card && card.id);
   const selectedTags = new Set(card?.tags || []);
 
   const section = document.createElement('section');
@@ -246,6 +252,7 @@ function renderForm(container, onDone) {
       examples,
       notes: notesInput.value.trim(),
       tags: Array.from(selectedTags),
+      verbForms: card?.verbForms || null,
     };
 
     try {
