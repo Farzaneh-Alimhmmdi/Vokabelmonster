@@ -1,4 +1,5 @@
 import { getAllCards, addCard, updateCard, deleteCard } from '../db.js';
+import { speakGerman } from '../tts.js';
 
 const DEFAULT_TAGS = [
   'A1',
@@ -456,6 +457,15 @@ export async function renderWords(container) {
 
     const actions = document.createElement('div');
     actions.className = 'word-actions';
+
+    const speakBtn = document.createElement('button');
+    speakBtn.type = 'button';
+    speakBtn.className = 'btn btn-sm';
+    speakBtn.setAttribute('aria-label', 'Pronounce word');
+    speakBtn.textContent = '🔊';
+    speakBtn.onclick = () =>
+      speakGerman(card.article ? `${card.article} ${card.lemma}` : card.lemma);
+    actions.appendChild(speakBtn);
 
     const editBtn = document.createElement('button');
     editBtn.type = 'button';

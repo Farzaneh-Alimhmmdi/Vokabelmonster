@@ -1,4 +1,4 @@
-const CACHE_VERSION = '0.3.0';
+const CACHE_VERSION = '0.4.0';
 const CACHE_NAME = `vokabelmonster-v${CACHE_VERSION}`;
 
 const PRECACHE_PATHS = [
@@ -10,6 +10,7 @@ const PRECACHE_PATHS = [
   './js/version.js',
   './js/db.js',
   './js/srs.js',
+  './js/tts.js',
   './js/dictionary.js',
   './js/ui/search.js',
   './js/ui/review.js',
