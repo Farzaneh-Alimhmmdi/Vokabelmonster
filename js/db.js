@@ -284,3 +284,80 @@ export async function getReviewLogsSince(ts) {
     req.onerror = () => reject(req.error);
   });
 }
+
+export async function exportFullBackup() {
+  const [cards, reviewLog] = await Promise.all([
+    getAllCards(),
+    getReviewLogsSince(0),
+  ]);
+  return {
+    type: 'vokabelmonster-backup',
+    dbVersion: DB_VERSION,
+    exportedAt: Date.now(),
+    cards,
+    reviewLog,
+  };
+}
+
+export async function exportShareList() {
+  const cards = await getAllCards();
+  const stripped = cards.map((c) => ({
+    lemma: c.lemma,
+    article: c.article || null,
+    pos: c.pos || 'noun',
+    plural: c.plural || '',
+    meaningFa: c.meaningFa || '',
+    meaningEn: c.meaningEn || '',
+    examples: c.examples || [],
+    notes: c.notes || '',
+    tags: c.tags || [],
+    level: c.level || null,
+    verbForms: c.verbForms || null,
+  }));
+  return {
+    type: 'vokabelmonster-share',
+    exportedAt: Date.now(),
+    cards: stripped,
+  };
+}
+
+export async function importCardsMerge(incomingCards, { includeSrs = false } = {}) {
+  let added = 0;
+  let skipped = 0;
+  for (const c of incomingCards) {
+    const norm = normalizeLemma(c.lemma);
+    if (!norm) {
+      skipped++;
+      continue;
+    }
+    const existing = await getCardByLemma(norm);
+    if (existing) {
+      skipped++;
+      continue;
+    }
+    await addCard({
+      ...c,
+      srs: includeSrs && c.srs ? c.srs : undefined,
+    });
+    added++;
+  }
+  return { added, skipped };
+}
+
+export async function importFullBackup(data) {
+  const cards = Array.isArray(data?.cards) ? data.cards : [];
+  const res = await importCardsMerge(cards, { includeSrs: true });
+  const logs = Array.isArray(data?.reviewLog) ? data.reviewLog : [];
+  for (const l of logs) {
+    if (l && l.cardId && l.ts) {
+      await addReviewLog({
+        cardId: l.cardId,
+        ts: l.ts,
+        rating: l.rating,
+        prevInterval: l.prevInterval ?? 0,
+        newInterval: l.newInterval ?? 0,
+      });
+    }
+  }
+  return res;
+}

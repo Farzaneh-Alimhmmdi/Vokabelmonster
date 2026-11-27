@@ -21,6 +21,7 @@ let state = {
   showForm: false,
   banner: null,
   confirmDeleteId: null,
+  visibleLimit: 50,
 };
 
 export function setPendingPrefill(prefillData) {
@@ -394,7 +395,8 @@ export async function renderWords(container) {
     return;
   }
 
-  for (const card of filtered) {
+  const visibleCards = filtered.slice(0, state.visibleLimit);
+  for (const card of visibleCards) {
     const item = document.createElement('div');
     item.className = 'word-item';
 
@@ -522,4 +524,17 @@ export async function renderWords(container) {
   }
 
   container.appendChild(listCard);
+
+  if (filtered.length > state.visibleLimit) {
+    const moreBtn = document.createElement('button');
+    moreBtn.type = 'button';
+    moreBtn.className = 'btn';
+    moreBtn.style.width = '100%';
+    moreBtn.textContent = `Load more (${filtered.length - state.visibleLimit} remaining)`;
+    moreBtn.onclick = () => {
+      state.visibleLimit += 50;
+      rerender();
+    };
+    container.appendChild(moreBtn);
+  }
 }
