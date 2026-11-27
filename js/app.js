@@ -138,4 +138,22 @@ async function init() {
   await renderCurrentRoute();
 }
 
-init();
+init().catch((err) => {
+  const main = document.getElementById('app-main');
+  if (!main) return;
+  main.innerHTML = '';
+  const card = document.createElement('section');
+  card.className = 'card';
+  const h2 = document.createElement('h2');
+  h2.textContent = 'Startup Error';
+  const p = document.createElement('p');
+  p.className = 'banner banner-error';
+  p.textContent = err?.message || String(err);
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'btn btn-primary';
+  btn.textContent = 'Reload';
+  btn.onclick = () => window.location.reload();
+  card.append(h2, p, btn);
+  main.appendChild(card);
+});
