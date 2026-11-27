@@ -1,4 +1,11 @@
-import { getAllCards, addCard, updateCard, deleteCard } from '../db.js';
+import {
+  getAllCards,
+  addCard,
+  updateCard,
+  deleteCard,
+  exportFullBackup,
+  setSetting,
+} from '../db.js';
 import { speakGerman } from '../tts.js';
 
 const DEFAULT_TAGS = [
@@ -315,7 +322,45 @@ export async function renderWords(container) {
     setBanner(null, '');
     rerender();
   };
-  topRow.append(title, addBtn);
+
+  const backupBtn = document.createElement('button');
+  backupBtn.type = 'button';
+  backupBtn.className = 'btn btn-sm';
+  backupBtn.textContent = 'Backup now';
+  backupBtn.onclick = async () => {
+    try {
+      const data = await exportFullBackup();
+      const content = JSON.stringify(data, null, 2);
+      const filename = `vokabelmonster-backup-${new Date().toISOString().slice(0, 10)}.json`;
+      const file = new File([content], filename, { type: 'application/json' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ title: 'Vokabelmonster Backup', files: [file] });
+      } else {
+        const blob = new Blob([content], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+      }
+      await setSetting('lastBackupTs', Date.now());
+      setBanner('success', 'Backup created!');
+      rerender();
+    } catch (err) {
+      setBanner('error', `Backup failed: ${err.message}`);
+      rerender();
+    }
+  };
+
+  const btnGroup = document.createElement('div');
+  btnGroup.style.display = 'flex';
+  btnGroup.style.gap = '8px';
+  btnGroup.append(backupBtn, addBtn);
+
+  topRow.append(title, btnGroup);
   topCard.appendChild(topRow);
 
   renderBanner(topCard);

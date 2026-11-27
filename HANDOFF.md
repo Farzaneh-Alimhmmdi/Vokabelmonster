@@ -64,4 +64,10 @@ python3 -m http.server 8000
 ```
 
 ## NEXT STEP
-All phases complete! Merge to `main` and enjoy Vokabelmonster v1.0.0.
+All phases complete! Merge to `main` and enjoy Vokabelmonster v1.0.1.
+
+## SHARING & CONVENIENCE (HIGH PRIORITY)
+- Full-database Export/Import JSON (backup) and "Share list" (cards only, no SRS progress). Import merges by normalized lemma, never overwrites, and shows a preview ("12 new, 3 already exist").
+- One-tap "Backup now" button on the Words screen using `navigator.share({files})` with download fallback.
+- All primary actions reachable with one thumb at the bottom of the screen.
+- Adding a word from search takes at most 2 taps.
