@@ -2,7 +2,7 @@
 
 - **Project status**: Phase 7 complete (All 0–7 phases complete!)
 - **Live URL**: `https://farzaneh-alimhmmdi.github.io/Vokabelmonster/`
-- **Last deployed APP_VERSION**: `1.0.0`
+- **Last deployed APP_VERSION**: `1.1.3`
 - **Last git tag**: `phase-7-done`
 
 ## Completed phases

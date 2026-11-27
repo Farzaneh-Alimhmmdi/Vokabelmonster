@@ -1,5 +1,6 @@
 import { APP_VERSION } from '../version.js';
 import { getErrorLog } from '../app.js';
+import { USE_OFFLINE_DICT } from '../config.js';
 import {
   DB_NAME,
   DB_VERSION,
@@ -318,6 +319,11 @@ export async function renderSettings(container) {
   infoCard.appendChild(h2);
 
   addRow(infoCard, 'App Version', `v${APP_VERSION}`);
+  addRow(
+    infoCard,
+    'Dictionary',
+    USE_OFFLINE_DICT ? 'offline + online' : 'online only'
+  );
   addRow(infoCard, 'Network', navigator.onLine ? 'Online' : 'Offline');
 
   let persistText = 'Unsupported';
