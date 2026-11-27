@@ -71,3 +71,26 @@ All phases complete! Merge to `main` and enjoy Vokabelmonster v1.0.1.
 - One-tap "Backup now" button on the Words screen using `navigator.share({files})` with download fallback.
 - All primary actions reachable with one thumb at the bottom of the screen.
 - Adding a word from search takes at most 2 taps.
+
+## FEATURE: AUTO ARTICLE + VERB CONJUGATION (BACKLOG / NEXT)
+- Offline-first data source order (adapter pattern):
+  1. Bundled `/data/de-dict.json` (built with `/tools/build-dict.mjs` from kaikki.org German JSONL, loaded into IndexedDB `dictLocal`).
+  2. Online fallback: German Wiktionary MediaWiki API (`origin=*`), 6s timeout + `AbortController`, cached in `dictCache`.
+  3. Rule-based generator `/js/morphology.js` (pure functions, node-tested) for regular verbs only (`confidence: "guess"`, "please verify" badge; never guess irregular verbs).
+- Nouns: always return article (`der/die/das`) + plural; support multiple genders (e.g. `der/das Joghurt`); leave `null` if unknown.
+- Data model change (requires DB v2 migration + automatic snapshot):
+  - Extend `verbForms` to `{ praesens: {ich,du,er,wir,ihr,sie}, praeteritum, partizip2, hilfsverb, separable, prefix, imperativ: {du,ihr,Sie} }`.
+  - Add `comparative`, `superlative`, `genitive` to cards.
+- UI: compact conjugation table (tap to expand), colored article badge, "verify" badge on guessed data, all fields editable before saving, `< 100ms` offline local search.
+- Tests: node tests for `morphology.js` (`machen`, `arbeiten`, `lernen`, `öffnen`, etc.).
+
+## FEATURE: IMPORT / EXPORT / BULK ADD / SHARING (BACKLOG / ENHANCEMENTS)
+1. **Export** (`navigator.share({files})` with download fallback):
+   - Full backup JSON (`cards`, `reviewLog`, `settings`, schema version, app version, `exportedAt`).
+   - Share word list JSON (`vokabelmonster-words-YYYY-MM-DD.json`, cards only, optional tag/level filter).
+   - CSV export (UTF-8 with BOM for Excel ä/ö/ü & Persian: `lemma, article, pos, plural, meaningFa, meaningEn, example, tags, level`).
+2. **Import** (file picker + paste text):
+   - Validate schema/format with clear error messages; preview (`"12 new, 3 already exist, 1 invalid"`); merge by normalized lemma (+ article for nouns) with skip or fill-empty-fields option; full-backup restore asks confirmation + takes automatic snapshot first.
+   - Robust CSV parser in `js/csv.js` (quoted fields, `;`/`,`/tab delimiters, optional header) with node tests.
+3. **Bulk Add** ("Add many words" screen):
+   - Textarea (one entry per line) with optional dictionary enrichment.
