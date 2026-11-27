@@ -365,18 +365,214 @@ export async function renderWords(container) {
 
   renderBanner(topCard);
 
-  // Search input
+  // Search input (created once, filters in-memory into listContainer)
   const searchInput = document.createElement('input');
   searchInput.className = 'input';
   searchInput.type = 'search';
+  searchInput.autocomplete = 'off';
+  searchInput.setAttribute('autocorrect', 'off');
+  searchInput.autocapitalize = 'off';
+  searchInput.spellcheck = false;
   searchInput.placeholder = 'Search words, meanings, notes...';
   searchInput.style.marginTop = '12px';
   searchInput.value = state.search;
-  searchInput.oninput = (e) => {
-    state.search = e.target.value;
-    rerender();
-  };
   topCard.appendChild(searchInput);
+
+  const listContainer = document.createElement('div');
+  let wordsDebounce = null;
+
+  const renderListOnly = () => {
+    listContainer.innerHTML = '';
+    const q = state.search.trim().toLowerCase();
+    const filtered = cards.filter((c) => {
+      if (state.activeTag !== 'ALL' && !(c.tags || []).includes(state.activeTag)) {
+        return false;
+      }
+      if (!q) return true;
+      return (
+        (c.lemma || '').toLowerCase().includes(q) ||
+        (c.meaningFa || '').toLowerCase().includes(q) ||
+        (c.meaningEn || '').toLowerCase().includes(q) ||
+        (c.notes || '').toLowerCase().includes(q)
+      );
+    });
+
+    const listCard = document.createElement('section');
+    listCard.className = 'card';
+    listCard.style.padding = '0';
+
+    if (filtered.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'empty-state';
+      empty.textContent =
+        cards.length === 0
+          ? 'No words yet. Tap "+ Add Word" to add your first German word!'
+          : 'No words match your search or tag filter.';
+      listCard.appendChild(empty);
+      listContainer.appendChild(listCard);
+      return;
+    }
+
+    const visibleCards = filtered.slice(0, state.visibleLimit);
+    for (const card of visibleCards) {
+      const item = document.createElement('div');
+      item.className = 'word-item';
+
+      const head = document.createElement('div');
+      head.className = 'word-head';
+
+      const lemmaWrap = document.createElement('div');
+      lemmaWrap.className = 'word-lemma';
+      if (card.article) {
+        const art = document.createElement('span');
+        art.className = `article-${card.article}`;
+        art.textContent = `${card.article} `;
+        lemmaWrap.appendChild(art);
+      }
+      const lem = document.createElement('span');
+      lem.textContent = card.lemma;
+      lemmaWrap.appendChild(lem);
+
+      if (card.plural) {
+        const pl = document.createElement('span');
+        pl.className = 'muted';
+        pl.textContent = ` (Pl. ${card.plural})`;
+        lemmaWrap.appendChild(pl);
+      }
+
+      const meta = document.createElement('span');
+      meta.className = 'badge';
+      meta.textContent = [card.pos, card.level].filter(Boolean).join(' · ');
+
+      head.append(lemmaWrap, meta);
+      item.appendChild(head);
+
+      if (card.meaningFa) {
+        const fa = document.createElement('div');
+        fa.className = 'word-meaning-fa';
+        fa.dir = 'rtl';
+        fa.textContent = card.meaningFa;
+        item.appendChild(fa);
+      }
+
+      if (card.meaningEn) {
+        const en = document.createElement('div');
+        en.className = 'muted';
+        en.textContent = card.meaningEn;
+        item.appendChild(en);
+      }
+
+      if (card.tags && card.tags.length > 0) {
+        const tagsRow = document.createElement('div');
+        tagsRow.className = 'chips-row';
+        tagsRow.style.marginTop = '8px';
+        for (const t of card.tags) {
+          const b = document.createElement('span');
+          b.className = 'badge';
+          b.textContent = t;
+          tagsRow.appendChild(b);
+        }
+        item.appendChild(tagsRow);
+      }
+
+      const actions = document.createElement('div');
+      actions.className = 'word-actions';
+
+      const speakBtn = document.createElement('button');
+      speakBtn.type = 'button';
+      speakBtn.className = 'btn btn-sm';
+      speakBtn.setAttribute('aria-label', 'Pronounce word');
+      speakBtn.textContent = '🔊';
+      speakBtn.onclick = () =>
+        speakGerman(card.article ? `${card.article} ${card.lemma}` : card.lemma);
+      actions.appendChild(speakBtn);
+
+      const editBtn = document.createElement('button');
+      editBtn.type = 'button';
+      editBtn.className = 'btn btn-sm';
+      editBtn.textContent = 'Edit';
+      editBtn.onclick = () => {
+        state.editingCard = card;
+        state.showForm = true;
+        setBanner(null, '');
+        rerender();
+      };
+      actions.appendChild(editBtn);
+
+      if (state.confirmDeleteId === card.id) {
+        const confirmBtn = document.createElement('button');
+        confirmBtn.type = 'button';
+        confirmBtn.className = 'btn btn-danger btn-sm';
+        confirmBtn.textContent = 'Confirm Delete';
+        confirmBtn.onclick = async () => {
+          try {
+            await deleteCard(card.id);
+            state.confirmDeleteId = null;
+            setBanner('success', `"${card.lemma}" deleted.`);
+            rerender();
+          } catch (err) {
+            setBanner('error', `Delete failed: ${err.message}`);
+            rerender();
+          }
+        };
+
+        const cancelDelBtn = document.createElement('button');
+        cancelDelBtn.type = 'button';
+        cancelDelBtn.className = 'btn btn-sm';
+        cancelDelBtn.textContent = 'Cancel';
+        cancelDelBtn.onclick = () => {
+          state.confirmDeleteId = null;
+          renderListOnly();
+        };
+        actions.append(confirmBtn, cancelDelBtn);
+      } else {
+        const delBtn = document.createElement('button');
+        delBtn.type = 'button';
+        delBtn.className = 'btn btn-danger btn-sm';
+        delBtn.textContent = 'Delete';
+        delBtn.onclick = () => {
+          state.confirmDeleteId = card.id;
+          renderListOnly();
+        };
+        actions.appendChild(delBtn);
+      }
+
+      item.appendChild(actions);
+      listCard.appendChild(item);
+    }
+
+    listContainer.appendChild(listCard);
+
+    if (filtered.length > state.visibleLimit) {
+      const moreBtn = document.createElement('button');
+      moreBtn.type = 'button';
+      moreBtn.className = 'btn';
+      moreBtn.style.width = '100%';
+      moreBtn.textContent = `Load more (${filtered.length - state.visibleLimit} remaining)`;
+      moreBtn.onclick = () => {
+        state.visibleLimit += 50;
+        renderListOnly();
+      };
+      listContainer.appendChild(moreBtn);
+    }
+  };
+
+  const triggerFilter = (val) => {
+    state.search = val;
+    clearTimeout(wordsDebounce);
+    wordsDebounce = setTimeout(() => {
+      renderListOnly();
+    }, 400);
+  };
+
+  searchInput.addEventListener('input', (e) => {
+    if (e.isComposing) return;
+    triggerFilter(e.target.value);
+  });
+
+  searchInput.addEventListener('compositionend', (e) => {
+    triggerFilter(e.target.value);
+  });
 
   // Tag filter chips
   const usedTags = new Set();
@@ -409,177 +605,6 @@ export async function renderWords(container) {
 
   container.appendChild(topCard);
 
-  // Filter cards
-  const q = state.search.trim().toLowerCase();
-  const filtered = cards.filter((c) => {
-    if (state.activeTag !== 'ALL' && !(c.tags || []).includes(state.activeTag)) {
-      return false;
-    }
-    if (!q) return true;
-    return (
-      (c.lemma || '').toLowerCase().includes(q) ||
-      (c.meaningFa || '').toLowerCase().includes(q) ||
-      (c.meaningEn || '').toLowerCase().includes(q) ||
-      (c.notes || '').toLowerCase().includes(q)
-    );
-  });
-
-  const listCard = document.createElement('section');
-  listCard.className = 'card';
-  listCard.style.padding = '0';
-
-  if (filtered.length === 0) {
-    const empty = document.createElement('div');
-    empty.className = 'empty-state';
-    empty.textContent =
-      cards.length === 0
-        ? 'No words yet. Tap "+ Add Word" to add your first German word!'
-        : 'No words match your search or tag filter.';
-    listCard.appendChild(empty);
-    container.appendChild(listCard);
-    return;
-  }
-
-  const visibleCards = filtered.slice(0, state.visibleLimit);
-  for (const card of visibleCards) {
-    const item = document.createElement('div');
-    item.className = 'word-item';
-
-    const head = document.createElement('div');
-    head.className = 'word-head';
-
-    const lemmaWrap = document.createElement('div');
-    lemmaWrap.className = 'word-lemma';
-    if (card.article) {
-      const art = document.createElement('span');
-      art.className = `article-${card.article}`;
-      art.textContent = `${card.article} `;
-      lemmaWrap.appendChild(art);
-    }
-    const lem = document.createElement('span');
-    lem.textContent = card.lemma;
-    lemmaWrap.appendChild(lem);
-
-    if (card.plural) {
-      const pl = document.createElement('span');
-      pl.className = 'muted';
-      pl.textContent = ` (Pl. ${card.plural})`;
-      lemmaWrap.appendChild(pl);
-    }
-
-    const meta = document.createElement('span');
-    meta.className = 'badge';
-    meta.textContent = [card.pos, card.level].filter(Boolean).join(' · ');
-
-    head.append(lemmaWrap, meta);
-    item.appendChild(head);
-
-    if (card.meaningFa) {
-      const fa = document.createElement('div');
-      fa.className = 'word-meaning-fa';
-      fa.dir = 'rtl';
-      fa.textContent = card.meaningFa;
-      item.appendChild(fa);
-    }
-
-    if (card.meaningEn) {
-      const en = document.createElement('div');
-      en.className = 'muted';
-      en.textContent = card.meaningEn;
-      item.appendChild(en);
-    }
-
-    if (card.tags && card.tags.length > 0) {
-      const tagsRow = document.createElement('div');
-      tagsRow.className = 'chips-row';
-      tagsRow.style.marginTop = '8px';
-      for (const t of card.tags) {
-        const b = document.createElement('span');
-        b.className = 'badge';
-        b.textContent = t;
-        tagsRow.appendChild(b);
-      }
-      item.appendChild(tagsRow);
-    }
-
-    const actions = document.createElement('div');
-    actions.className = 'word-actions';
-
-    const speakBtn = document.createElement('button');
-    speakBtn.type = 'button';
-    speakBtn.className = 'btn btn-sm';
-    speakBtn.setAttribute('aria-label', 'Pronounce word');
-    speakBtn.textContent = '🔊';
-    speakBtn.onclick = () =>
-      speakGerman(card.article ? `${card.article} ${card.lemma}` : card.lemma);
-    actions.appendChild(speakBtn);
-
-    const editBtn = document.createElement('button');
-    editBtn.type = 'button';
-    editBtn.className = 'btn btn-sm';
-    editBtn.textContent = 'Edit';
-    editBtn.onclick = () => {
-      state.editingCard = card;
-      state.showForm = true;
-      setBanner(null, '');
-      rerender();
-    };
-    actions.appendChild(editBtn);
-
-    if (state.confirmDeleteId === card.id) {
-      const confirmBtn = document.createElement('button');
-      confirmBtn.type = 'button';
-      confirmBtn.className = 'btn btn-danger btn-sm';
-      confirmBtn.textContent = 'Confirm Delete';
-      confirmBtn.onclick = async () => {
-        try {
-          await deleteCard(card.id);
-          state.confirmDeleteId = null;
-          setBanner('success', `"${card.lemma}" deleted.`);
-          rerender();
-        } catch (err) {
-          setBanner('error', `Delete failed: ${err.message}`);
-          rerender();
-        }
-      };
-
-      const cancelDelBtn = document.createElement('button');
-      cancelDelBtn.type = 'button';
-      cancelDelBtn.className = 'btn btn-sm';
-      cancelDelBtn.textContent = 'Cancel';
-      cancelDelBtn.onclick = () => {
-        state.confirmDeleteId = null;
-        rerender();
-      };
-      actions.append(confirmBtn, cancelDelBtn);
-    } else {
-      const delBtn = document.createElement('button');
-      delBtn.type = 'button';
-      delBtn.className = 'btn btn-danger btn-sm';
-      delBtn.textContent = 'Delete';
-      delBtn.onclick = () => {
-        state.confirmDeleteId = card.id;
-        rerender();
-      };
-      actions.appendChild(delBtn);
-    }
-
-    item.appendChild(actions);
-    listCard.appendChild(item);
-  }
-
-  container.appendChild(listCard);
-
-  if (filtered.length > state.visibleLimit) {
-    const moreBtn = document.createElement('button');
-    moreBtn.type = 'button';
-    moreBtn.className = 'btn';
-    moreBtn.style.width = '100%';
-    moreBtn.textContent = `Load more (${filtered.length - state.visibleLimit} remaining)`;
-    moreBtn.onclick = () => {
-      state.visibleLimit += 50;
-      rerender();
-    };
-    container.appendChild(moreBtn);
-  }
+  container.appendChild(listContainer);
+  renderListOnly();
 }

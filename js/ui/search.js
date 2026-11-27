@@ -13,98 +13,10 @@ let searchState = {
 };
 
 let debounceTimer = null;
+let activeController = null;
 
-async function runSearch(query, rerender) {
-  const q = String(query || '').trim();
-  searchState.query = q;
-  if (!q) {
-    searchState.loading = false;
-    searchState.error = null;
-    searchState.result = null;
-    searchState.fromCache = false;
-    searchState.alreadyInList = false;
-    rerender();
-    return;
-  }
-
-  searchState.loading = true;
-  searchState.error = null;
-  rerender();
-
-  try {
-    const cached = await getDictCache(q);
-    let data = cached?.data || null;
-    let fromCache = Boolean(data);
-
-    if (!data) {
-      if (!navigator.onLine) {
-        throw new Error('You are offline and this word is not cached.');
-      }
-      data = await lookupWord(q);
-      await setDictCache(q, data);
-      fromCache = false;
-    }
-
-    const existing = await getCardByLemma(data.lemma);
-    searchState.result = data;
-    searchState.fromCache = fromCache;
-    searchState.alreadyInList = Boolean(existing);
-    searchState.loading = false;
-    rerender();
-  } catch (err) {
-    searchState.loading = false;
-    searchState.result = null;
-    searchState.error = err.message || 'Lookup failed.';
-    rerender();
-  }
-}
-
-export function renderSearch(container) {
-  container.innerHTML = '';
-  const rerender = () => renderSearch(container);
-
-  const searchCard = document.createElement('section');
-  searchCard.className = 'card';
-
-  const h2 = document.createElement('h2');
-  h2.textContent = 'Dictionary Search';
-  searchCard.appendChild(h2);
-
-  const form = document.createElement('form');
-  form.className = 'row-between';
-  form.style.marginTop = '8px';
-
-  const input = document.createElement('input');
-  input.className = 'input';
-  input.type = 'search';
-  input.placeholder = 'Type a German word (e.g. Haus, gehen)...';
-  input.value = searchState.query;
-
-  input.oninput = (e) => {
-    const val = e.target.value;
-    searchState.query = val;
-    clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(() => {
-      if (val.trim().length >= 2) {
-        runSearch(val, rerender);
-      }
-    }, 450);
-  };
-
-  const btn = document.createElement('button');
-  btn.type = 'submit';
-  btn.className = 'btn btn-primary';
-  btn.textContent = 'Search';
-
-  form.onsubmit = (e) => {
-    e.preventDefault();
-    clearTimeout(debounceTimer);
-    runSearch(input.value, rerender);
-  };
-
-  form.append(input, btn);
-  searchCard.appendChild(form);
-  container.appendChild(searchCard);
+function renderResults(resultsContainer) {
+  resultsContainer.innerHTML = '';
 
   if (searchState.loading) {
     const loadCard = document.createElement('section');
@@ -113,7 +25,7 @@ export function renderSearch(container) {
     p.className = 'muted';
     p.textContent = 'Searching Wiktionary & MyMemory...';
     loadCard.appendChild(p);
-    container.appendChild(loadCard);
+    resultsContainer.appendChild(loadCard);
     return;
   }
 
@@ -135,7 +47,7 @@ export function renderSearch(container) {
     };
 
     errCard.append(banner, manualBtn);
-    container.appendChild(errCard);
+    resultsContainer.appendChild(errCard);
     return;
   }
 
@@ -144,7 +56,7 @@ export function renderSearch(container) {
     emptyCard.className = 'card empty-state';
     emptyCard.textContent =
       'Search any German word to see its article, plural, Persian meaning, and examples.';
-    container.appendChild(emptyCard);
+    resultsContainer.appendChild(emptyCard);
     return;
   }
 
@@ -259,5 +171,126 @@ export function renderSearch(container) {
   }
 
   resCard.appendChild(footer);
-  container.appendChild(resCard);
+  resultsContainer.appendChild(resCard);
+}
+
+async function runSearch(query, resultsContainer) {
+  const q = String(query || '').trim();
+  searchState.query = q;
+
+  if (activeController) {
+    activeController.abort();
+    activeController = null;
+  }
+
+  if (q.length < 2) {
+    searchState.loading = false;
+    searchState.error = null;
+    searchState.result = null;
+    searchState.fromCache = false;
+    searchState.alreadyInList = false;
+    renderResults(resultsContainer);
+    return;
+  }
+
+  const controller = new AbortController();
+  activeController = controller;
+
+  searchState.loading = true;
+  searchState.error = null;
+  renderResults(resultsContainer);
+
+  try {
+    const cached = await getDictCache(q);
+    if (q !== searchState.query) return;
+
+    let data = cached?.data || null;
+    let fromCache = Boolean(data);
+
+    if (!data) {
+      if (!navigator.onLine) {
+        throw new Error('You are offline and this word is not cached.');
+      }
+      data = await lookupWord(q, controller.signal);
+      if (q !== searchState.query) return;
+      await setDictCache(q, data);
+      fromCache = false;
+    }
+
+    const existing = await getCardByLemma(data.lemma);
+    if (q !== searchState.query) return;
+
+    searchState.result = data;
+    searchState.fromCache = fromCache;
+    searchState.alreadyInList = Boolean(existing);
+    searchState.loading = false;
+    renderResults(resultsContainer);
+  } catch (err) {
+    if (err.name === 'AbortError' || q !== searchState.query) return;
+    searchState.loading = false;
+    searchState.result = null;
+    searchState.error = err.message || 'Lookup failed.';
+    renderResults(resultsContainer);
+  }
+}
+
+export function renderSearch(container) {
+  container.innerHTML = '';
+
+  const searchCard = document.createElement('section');
+  searchCard.className = 'card';
+
+  const h2 = document.createElement('h2');
+  h2.textContent = 'Dictionary Search';
+  searchCard.appendChild(h2);
+
+  const form = document.createElement('form');
+  form.className = 'row-between';
+  form.style.marginTop = '8px';
+
+  const input = document.createElement('input');
+  input.className = 'input';
+  input.type = 'search';
+  input.autocomplete = 'off';
+  input.setAttribute('autocorrect', 'off');
+  input.autocapitalize = 'off';
+  input.spellcheck = false;
+  input.placeholder = 'Type a German word (e.g. Haus, gehen)...';
+  input.value = searchState.query;
+
+  const resultsContainer = document.createElement('div');
+
+  const scheduleSearch = (val) => {
+    searchState.query = val.trim();
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => {
+      runSearch(val, resultsContainer);
+    }, 600);
+  };
+
+  input.addEventListener('input', (e) => {
+    if (e.isComposing) return;
+    scheduleSearch(e.target.value);
+  });
+
+  input.addEventListener('compositionend', (e) => {
+    scheduleSearch(e.target.value);
+  });
+
+  const btn = document.createElement('button');
+  btn.type = 'submit';
+  btn.className = 'btn btn-primary';
+  btn.textContent = 'Search';
+
+  form.onsubmit = (e) => {
+    e.preventDefault();
+    clearTimeout(debounceTimer);
+    runSearch(input.value, resultsContainer);
+  };
+
+  form.append(input, btn);
+  searchCard.appendChild(form);
+  container.append(searchCard, resultsContainer);
+
+  renderResults(resultsContainer);
 }
