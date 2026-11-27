@@ -7,6 +7,8 @@ import {
   getSetting,
   setSetting,
   getAllCards,
+  getCardByLemma,
+  normalizeLemma,
   exportFullBackup,
   exportShareList,
   importCardsMerge,
@@ -15,6 +17,7 @@ import {
 import { cardsToCsv, parseCsvToCards } from '../csv.js';
 
 let settingsBanner = null;
+let pendingImport = null; // { mode: 'backup'|'cards', data, newCount, existingCount }
 
 function addRow(parent, label, value) {
   const row = document.createElement('div');
@@ -212,26 +215,42 @@ export async function renderSettings(container) {
     if (!file) return;
     try {
       const text = await file.text();
-      let res;
+      let mode = 'cards';
+      let data = null;
+      let cardsList = [];
+
       if (file.name.toLowerCase().endsWith('.csv')) {
-        const parsed = parseCsvToCards(text);
-        res = await importCardsMerge(parsed, { includeSrs: false });
+        cardsList = parseCsvToCards(text);
+        data = cardsList;
       } else {
         const json = JSON.parse(text);
         if (json.type === 'vokabelmonster-backup') {
-          res = await importFullBackup(json);
+          mode = 'backup';
+          data = json;
+          cardsList = Array.isArray(json.cards) ? json.cards : [];
         } else if (Array.isArray(json.cards)) {
-          res = await importCardsMerge(json.cards, { includeSrs: false });
+          cardsList = json.cards;
+          data = cardsList;
         } else {
           throw new Error('Unrecognized JSON format.');
         }
       }
-      settingsBanner = {
-        type: 'success',
-        text: `Imported: ${res.added} added, ${res.skipped} skipped (duplicates).`,
-      };
+
+      let newCount = 0;
+      let existingCount = 0;
+      for (const c of cardsList) {
+        const norm = normalizeLemma(c.lemma);
+        if (!norm) continue;
+        const exists = await getCardByLemma(norm);
+        if (exists) existingCount++;
+        else newCount++;
+      }
+
+      pendingImport = { mode, data, newCount, existingCount };
+      settingsBanner = null;
       rerender();
     } catch (err) {
+      pendingImport = null;
       settingsBanner = { type: 'error', text: `Import failed: ${err.message}` };
       rerender();
     }
@@ -240,6 +259,55 @@ export async function renderSettings(container) {
 
   btnStack.append(shareBtn, exportJsonBtn, exportCsvBtn, importLabel);
   backupCard.appendChild(btnStack);
+
+  if (pendingImport) {
+    const prevBox = document.createElement('div');
+    prevBox.className = 'banner banner-success';
+    prevBox.style.marginTop = '12px';
+    const msg = document.createElement('div');
+    msg.textContent = `Preview: ${pendingImport.newCount} new, ${pendingImport.existingCount} already exist.`;
+    const row = document.createElement('div');
+    row.style.display = 'flex';
+    row.style.gap = '8px';
+    row.style.marginTop = '8px';
+
+    const confirmBtn = document.createElement('button');
+    confirmBtn.type = 'button';
+    confirmBtn.className = 'btn btn-primary btn-sm';
+    confirmBtn.textContent = 'Confirm Import';
+    confirmBtn.onclick = async () => {
+      try {
+        const res =
+          pendingImport.mode === 'backup'
+            ? await importFullBackup(pendingImport.data)
+            : await importCardsMerge(pendingImport.data, { includeSrs: false });
+        pendingImport = null;
+        settingsBanner = {
+          type: 'success',
+          text: `Imported: ${res.added} added, ${res.skipped} skipped.`,
+        };
+        rerender();
+      } catch (err) {
+        pendingImport = null;
+        settingsBanner = { type: 'error', text: `Import failed: ${err.message}` };
+        rerender();
+      }
+    };
+
+    const cancelBtn = document.createElement('button');
+    cancelBtn.type = 'button';
+    cancelBtn.className = 'btn btn-sm';
+    cancelBtn.textContent = 'Cancel';
+    cancelBtn.onclick = () => {
+      pendingImport = null;
+      rerender();
+    };
+
+    row.append(confirmBtn, cancelBtn);
+    prevBox.append(msg, row);
+    backupCard.appendChild(prevBox);
+  }
+
   container.appendChild(backupCard);
 
   // 3. Diagnostics

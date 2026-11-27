@@ -34,11 +34,11 @@ function extractExamples(wikitext) {
   return lines.slice(0, 2).map((de) => ({ de }));
 }
 
-export async function fetchWiktionary(word) {
+export async function fetchWiktionary(word, signal) {
   const url = `https://de.wiktionary.org/w/api.php?action=query&prop=revisions&rvprop=content&rvslots=main&format=json&origin=*&titles=${encodeURIComponent(
     word
   )}`;
-  const res = await fetch(url);
+  const res = await fetch(url, { signal });
   if (!res.ok) throw new Error(`Wiktionary HTTP ${res.status}`);
   const json = await res.json();
   const pages = json?.query?.pages || {};
