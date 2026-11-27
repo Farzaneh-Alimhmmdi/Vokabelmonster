@@ -8,6 +8,7 @@ let searchState = {
   loading: false,
   error: null,
   result: null,
+  suggestions: [],
   fromCache: false,
   alreadyInList: false,
 };
@@ -36,6 +37,30 @@ function renderResults(resultsContainer) {
     const banner = document.createElement('div');
     banner.className = 'banner banner-error';
     banner.textContent = searchState.error;
+    errCard.appendChild(banner);
+
+    if (searchState.suggestions && searchState.suggestions.length > 0) {
+      const sugLabel = document.createElement('div');
+      sugLabel.className = 'muted';
+      sugLabel.style.marginBottom = '6px';
+      sugLabel.textContent = 'Did you mean:';
+      const sugRow = document.createElement('div');
+      sugRow.className = 'chips-row';
+      sugRow.style.marginBottom = '12px';
+      for (const s of searchState.suggestions) {
+        const chip = document.createElement('button');
+        chip.type = 'button';
+        chip.className = 'chip';
+        chip.textContent = s;
+        chip.onclick = () => {
+          const inp = document.querySelector('#app-main input[type="search"]');
+          if (inp) inp.value = s;
+          runSearch(s, resultsContainer);
+        };
+        sugRow.appendChild(chip);
+      }
+      errCard.append(sugLabel, sugRow);
+    }
 
     const manualBtn = document.createElement('button');
     manualBtn.type = 'button';
@@ -46,7 +71,7 @@ function renderResults(resultsContainer) {
       window.location.hash = '#/words';
     };
 
-    errCard.append(banner, manualBtn);
+    errCard.append(manualBtn);
     resultsContainer.appendChild(errCard);
     return;
   }
@@ -221,6 +246,7 @@ async function runSearch(query, resultsContainer) {
     if (q !== searchState.query) return;
 
     searchState.result = data;
+    searchState.suggestions = data.suggestions || [];
     searchState.fromCache = fromCache;
     searchState.alreadyInList = Boolean(existing);
     searchState.loading = false;
@@ -229,6 +255,7 @@ async function runSearch(query, resultsContainer) {
     if (err.name === 'AbortError' || q !== searchState.query) return;
     searchState.loading = false;
     searchState.result = null;
+    searchState.suggestions = err.suggestions || [];
     searchState.error = err.message || 'Lookup failed.';
     renderResults(resultsContainer);
   }

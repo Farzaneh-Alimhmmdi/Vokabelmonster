@@ -108,8 +108,15 @@ export async function lookupWord(query) {
   const meaningEn = enRes.status === 'fulfilled' ? enRes.value : '';
 
   if (!wiki && !meaningFa && !meaningEn) {
-    throw new Error('No dictionary results found (or network unavailable).');
+    const suggestions = await fetchWiktionarySuggestions(clean, signal).catch(() => []);
+    const err = new Error('No dictionary results found (or network unavailable).');
+    err.suggestions = suggestions;
+    throw err;
   }
+
+  const suggestions = !wiki
+    ? await fetchWiktionarySuggestions(clean, signal).catch(() => [])
+    : [];
 
   return {
     lemma: wiki?.lemma || clean,
@@ -120,6 +127,7 @@ export async function lookupWord(query) {
     meaningEn,
     examples: wiki?.examples || [],
     verbForms: wiki?.verbForms || null,
+    suggestions,
     source: wiki ? 'Wiktionary + MyMemory' : 'MyMemory',
   };
 }
