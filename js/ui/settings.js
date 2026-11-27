@@ -1,4 +1,5 @@
 import { APP_VERSION } from '../version.js';
+import { getErrorLog } from '../app.js';
 import {
   DB_NAME,
   DB_VERSION,
@@ -277,4 +278,21 @@ export async function renderSettings(container) {
   infoCard.appendChild(note);
 
   container.appendChild(infoCard);
+
+  const errs = getErrorLog();
+  if (errs.length > 0) {
+    const errCard = document.createElement('section');
+    errCard.className = 'card';
+    const eh2 = document.createElement('h2');
+    eh2.textContent = `Error Log (${errs.length})`;
+    errCard.appendChild(eh2);
+    for (const e of errs.slice(0, 5)) {
+      const p = document.createElement('p');
+      p.className = 'muted';
+      p.style.fontSize = '12px';
+      p.textContent = `${e.ts.slice(11, 19)} — ${e.msg}`;
+      errCard.appendChild(p);
+    }
+    container.appendChild(errCard);
+  }
 }

@@ -52,10 +52,60 @@ async function renderCurrentRoute() {
   }
 }
 
+const errorLog = [];
+
+export function getErrorLog() {
+  return [...errorLog];
+}
+
+function logAppError(msg) {
+  errorLog.unshift({ ts: new Date().toISOString(), msg: String(msg) });
+  if (errorLog.length > 20) errorLog.pop();
+}
+
+window.addEventListener('error', (e) => {
+  logAppError(e.message || 'Unknown error');
+});
+
+window.addEventListener('unhandledrejection', (e) => {
+  logAppError(e.reason?.message || String(e.reason || 'Unhandled rejection'));
+});
+
+function showUpdateToast() {
+  if (document.getElementById('sw-update-toast')) return;
+  const toast = document.createElement('div');
+  toast.id = 'sw-update-toast';
+  toast.className = 'update-toast';
+
+  const txt = document.createElement('span');
+  txt.textContent = 'New version available!';
+
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'btn btn-primary btn-sm';
+  btn.textContent = 'Reload';
+  btn.onclick = () => window.location.reload();
+
+  toast.append(txt, btn);
+  document.body.appendChild(toast);
+}
+
 async function registerSW() {
   if (!('serviceWorker' in navigator)) return;
   try {
-    await navigator.serviceWorker.register('./sw.js', { scope: './' });
+    const reg = await navigator.serviceWorker.register('./sw.js', { scope: './' });
+    if (reg.waiting && navigator.serviceWorker.controller) {
+      showUpdateToast();
+    }
+    reg.addEventListener('updatefound', () => {
+      const worker = reg.installing;
+      if (!worker) return;
+      worker.addEventListener('statechange', () => {
+        if (worker.state === 'installed' && navigator.serviceWorker.controller) {
+          showUpdateToast();
+        }
+      });
+    });
   } catch (err) {
     console.warn('Service worker registration failed:', err);
   }
