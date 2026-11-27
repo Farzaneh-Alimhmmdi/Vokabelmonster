@@ -25,6 +25,8 @@ const PRECACHE_PATHS = [
   './icons/apple-touch-icon-180.png',
 ];
 
+const OPTIONAL_PATHS = ['./data/de-dict.json'];
+
 function resolveAssetUrls(paths) {
   const scope = self.registration ? self.registration.scope : self.location.href;
   return paths.map((path) => new URL(path, scope).toString());
@@ -32,7 +34,16 @@ function resolveAssetUrls(paths) {
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(resolveAssetUrls(PRECACHE_PATHS)))
+    caches.open(CACHE_NAME).then(async (cache) => {
+      await cache.addAll(resolveAssetUrls(PRECACHE_PATHS));
+      for (const optUrl of resolveAssetUrls(OPTIONAL_PATHS)) {
+        try {
+          await cache.add(optUrl);
+        } catch {
+          // Optional file (e.g. data/de-dict.json) may not exist; ignore
+        }
+      }
+    })
   );
   self.skipWaiting();
 });
