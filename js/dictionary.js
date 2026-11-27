@@ -1,3 +1,5 @@
+import { generateVariants } from './fuzzy.js';
+
 function extractField(wikitext, fieldName) {
   const re = new RegExp(`\\|\\s*${fieldName}\\s*=\\s*([^\\n|}]*)`, 'i');
   const m = wikitext.match(re);
