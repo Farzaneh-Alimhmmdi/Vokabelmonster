@@ -83,3 +83,14 @@ All phases complete! Merge to `main` and enjoy Vokabelmonster v1.0.1.
   - Add `comparative`, `superlative`, `genitive` to cards.
 - UI: compact conjugation table (tap to expand), colored article badge, "verify" badge on guessed data, all fields editable before saving, `< 100ms` offline local search.
 - Tests: node tests for `morphology.js` (`machen`, `arbeiten`, `lernen`, `öffnen`, etc.).
+
+## FEATURE: IMPORT / EXPORT / BULK ADD / SHARING (BACKLOG / ENHANCEMENTS)
+1. **Export** (`navigator.share({files})` with download fallback):
+   - Full backup JSON (`cards`, `reviewLog`, `settings`, schema version, app version, `exportedAt`).
+   - Share word list JSON (`vokabelmonster-words-YYYY-MM-DD.json`, cards only, optional tag/level filter).
+   - CSV export (UTF-8 with BOM for Excel ä/ö/ü & Persian: `lemma, article, pos, plural, meaningFa, meaningEn, example, tags, level`).
+2. **Import** (file picker + paste text):
+   - Validate schema/format with clear error messages; preview (`"12 new, 3 already exist, 1 invalid"`); merge by normalized lemma (+ article for nouns) with skip or fill-empty-fields option; full-backup restore asks confirmation + takes automatic snapshot first.
+   - Robust CSV parser in `js/csv.js` (quoted fields, `;`/`,`/tab delimiters, optional header) with node tests.
+3. **Bulk Add** ("Add many words" screen):
+   - Textarea (one entry per line) with optional dictionary enrichment.
