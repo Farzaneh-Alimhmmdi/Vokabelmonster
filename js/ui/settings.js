@@ -73,11 +73,12 @@ export async function renderSettings(container) {
   lh2.textContent = 'Study Settings';
   limitsCard.appendChild(lh2);
 
-  const [newPerDay, maxReviewsPerDay, dailyGoal, lastBackup] = await Promise.all([
+  const [newPerDay, maxReviewsPerDay, dailyGoal, lastBackup, dictMode] = await Promise.all([
     getSetting('newPerDay', 10),
     getSetting('maxReviewsPerDay', 100),
     getSetting('dailyGoal', 20),
     getSetting('lastBackupTs', null),
+    getSetting('dictMode', 'online'),
   ]);
 
   const form = document.createElement('form');
@@ -123,6 +124,109 @@ export async function renderSettings(container) {
   form.append(fNew.wrap, fMax.wrap, fGoal.wrap, saveBtn);
   limitsCard.appendChild(form);
   container.appendChild(limitsCard);
+
+  // 1b. Dictionary Mode
+  const dictCard = document.createElement('section');
+  dictCard.className = 'card';
+  const dh2 = document.createElement('h2');
+  dh2.textContent = 'Dictionary Mode';
+  dictCard.appendChild(dh2);
+
+  let hasOfflineFile = false;
+  try {
+    const headRes = await fetch('./data/de-dict.json', { method: 'HEAD' });
+    hasOfflineFile = headRes.ok;
+  } catch {
+    hasOfflineFile = false;
+  }
+
+  const effectiveMode = !hasOfflineFile && dictMode !== 'online' ? 'online' : dictMode;
+  const modes = [
+    { id: 'online', label: 'Online', desc: 'فقط اینترنت' },
+    { id: 'offline', label: 'Offline', desc: 'فقط فایل داخل اپ' },
+    { id: 'auto', label: 'Auto', desc: 'اول فایل داخل اپ، بعد اینترنت' },
+  ];
+
+  for (const m of modes) {
+    const row = document.createElement('label');
+    row.className = 'kv-row';
+    row.style.cursor = 'pointer';
+
+    const left = document.createElement('div');
+    const title = document.createElement('div');
+    title.style.fontWeight = '600';
+    title.textContent = m.label;
+    const desc = document.createElement('div');
+    desc.className = 'muted';
+    desc.dir = 'rtl';
+    desc.style.fontSize = '12px';
+    desc.textContent = m.desc;
+    left.append(title, desc);
+
+    const radio = document.createElement('input');
+    radio.type = 'radio';
+    radio.name = 'dictMode';
+    radio.value = m.id;
+    radio.checked = effectiveMode === m.id;
+    if (!hasOfflineFile && m.id !== 'online') {
+      radio.disabled = true;
+    }
+    radio.onchange = async () => {
+      await setSetting('dictMode', m.id);
+      settingsBanner = { type: 'success', text: `Dictionary mode: ${m.label}` };
+      rerender();
+    };
+
+    row.append(left, radio);
+    dictCard.appendChild(row);
+  }
+
+  if (!hasOfflineFile) {
+    const warn = document.createElement('p');
+    warn.className = 'muted';
+    warn.dir = 'rtl';
+    warn.style.fontSize = '12px';
+    warn.textContent = 'فایل آفلاین data/de-dict.json موجود نیست؛ حالت‌های offline و auto غیرفعال هستند.';
+    dictCard.appendChild(warn);
+  }
+
+  // Collapsible Dictionary Debug panel
+  const dbg = getLastDictDebug();
+  const details = document.createElement('details');
+  details.style.marginTop = '10px';
+  const summary = document.createElement('summary');
+  summary.style.cursor = 'pointer';
+  summary.style.fontWeight = '600';
+  summary.textContent = 'Dictionary debug';
+  details.appendChild(summary);
+
+  const dbgBox = document.createElement('div');
+  dbgBox.className = 'muted';
+  dbgBox.style.fontSize = '12px';
+  dbgBox.style.marginTop = '8px';
+  if (!dbg) {
+    dbgBox.textContent = 'No dictionary lookup performed yet in this session.';
+  } else {
+    for (const [k, v] of [
+      ['URL', dbg.url],
+      ['HTTP Status', String(dbg.status)],
+      ['Response Time', `${dbg.ms} ms`],
+      ['Error', dbg.error || 'None'],
+      ['Response Size', `${dbg.bytes} bytes`],
+      ['Article', dbg.parsed?.article],
+      ['Plural', dbg.parsed?.plural],
+      ['Genitive', dbg.parsed?.genitive],
+      ['Verb Forms', dbg.parsed?.verbForms],
+    ]) {
+      const line = document.createElement('div');
+      line.style.wordBreak = 'break-all';
+      line.textContent = `${k}: ${v}`;
+      dbgBox.appendChild(line);
+    }
+  }
+  details.appendChild(dbgBox);
+  dictCard.appendChild(details);
+  container.appendChild(dictCard);
 
   // 2. Backup, Export & Share
   const backupCard = document.createElement('section');
