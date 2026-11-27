@@ -1,10 +1,20 @@
 import { generateVariants } from './fuzzy.js';
 
+let lastDebug = null;
+
+export function getLastDictDebug() {
+  return lastDebug;
+}
+
 function extractField(wikitext, fieldName) {
-  const re = new RegExp(`\\|\\s*${fieldName}\\s*=\\s*([^\\n|}]*)`, 'i');
+  const escaped = fieldName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const re = new RegExp(`\\|\\s*${escaped}(?:\\s*\\d+)?\\s*=\\s*([^\\n|}]*)`, 'i');
   const m = wikitext.match(re);
   if (!m) return '';
-  return m[1].replace(/\[\[|\]\]|'''?|{{[^}]*}}/g, '').trim();
+  return m[1]
+    .replace(/<!--[\s\S]*?-->/g, '')
+    .replace(/\[\[|\]\]|'''?|{{[^}]*}}/g, '')
+    .trim();
 }
 
 function mapGenusToArticle(genus) {
@@ -57,6 +67,7 @@ export async function fetchWiktionary(word, signal) {
   const genus = extractField(content, 'Genus');
   const article = mapGenusToArticle(genus);
   const plural = extractField(content, 'Nominativ Plural');
+  const genitive = extractField(content, 'Genitiv Singular');
 
   let verbForms = null;
   if (pos === 'verb') {
@@ -72,11 +83,23 @@ export async function fetchWiktionary(word, signal) {
     }
   }
 
+  if (lastDebug) {
+    lastDebug.parsed = {
+      article: article || 'NOT FOUND in response',
+      plural: plural || 'NOT FOUND in response',
+      genitive: genitive || 'NOT FOUND in response',
+      verbForms: verbForms
+        ? `${verbForms.praeteritum} / ${verbForms.partizip2} (${verbForms.hilfsverb})`
+        : 'NOT FOUND in response',
+    };
+  }
+
   return {
     lemma: page.title || word,
     article,
     pos,
     plural,
+    genitive,
     examples: extractExamples(content),
     verbForms,
     source: 'de.wiktionary.org',
